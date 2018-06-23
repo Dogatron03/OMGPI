@@ -1,10 +1,7 @@
 package tk.omgpi.forge;
 
 import net.minecraft.world.DimensionType;
-import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.config.Configuration;
-import net.minecraftforge.common.config.Property;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
@@ -12,9 +9,7 @@ import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import tk.omgpi.forge.commands.IngameCommand;
 import tk.omgpi.forge.config.MainConfig;
-import tk.omgpi.forge.events.OMGInitEvent;
 import tk.omgpi.forge.game.Game;
-import tk.omgpi.forge.utils.MySQL;
 import tk.omgpi.forge.world.OMGWorld;
 import tk.omgpi.forge.world.OMGWorldProvider;
 
@@ -54,8 +49,7 @@ public class OMGPI {
         main.loadSQL();
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public static void onInit(OMGInitEvent e){
+    public static void onInit() {
         if(games.size() == 0) throw new RuntimeException("No games registered!");
         if(main.hasGame()) {
             String game = main.getGame();
@@ -69,12 +63,16 @@ public class OMGPI {
 
     public static void loadGame(Game game){
         OMGPI.game = game;
+        MinecraftForge.EVENT_BUS.register(game);
         game.onEnable();
+    }
+
+    public static void reload(){
+        MinecraftForge.EVENT_BUS.unregister(game);
     }
 
     @Mod.EventHandler
     public static void onForgeServerStart(FMLServerStartingEvent e){
-        new OMGInitEvent();
         e.registerServerCommand(new IngameCommand());
     }
 
