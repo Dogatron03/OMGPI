@@ -8,13 +8,19 @@ import net.minecraftforge.common.config.Property;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import tk.omgpi.forge.commands.IngameCommand;
 import tk.omgpi.forge.config.MainConfig;
+import tk.omgpi.forge.events.OMGInitEvent;
 import tk.omgpi.forge.game.Game;
+import tk.omgpi.forge.utils.MySQL;
 import tk.omgpi.forge.world.OMGWorld;
 import tk.omgpi.forge.world.OMGWorldProvider;
 
 import java.io.File;
+import java.util.List;
+import java.util.Random;
 
 import static tk.omgpi.forge.OMGPI.*;
 
@@ -35,6 +41,8 @@ public class OMGPI {
     public static File dir;
     public static OMGWorld ingame;
 
+    public static List<Game> games;
+
 
     @Mod.EventHandler
     public static void onForgePreInit(FMLPreInitializationEvent e){
@@ -42,11 +50,31 @@ public class OMGPI {
         dir = new File(e.getModConfigurationDirectory() + File.separator + "OMGPI");
         main = new MainConfig();
         OMGWorld.type = DimensionType.register(ID, "ingame", 1811, OMGWorldProvider.class, false);
+        ingame = new OMGWorld(1811);
+        main.loadSQL();
+    }
 
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onInit(OMGInitEvent e){
+        if(games.size() == 0) throw new RuntimeException("No games registered!");
+        if(main.hasGame()) {
+            String game = main.getGame();
+            if(games.stream().filter(x -> x.getName().equalsIgnoreCase(game)).count() != 0) {
+                loadGame(games.stream().filter(x -> x.getName().equalsIgnoreCase(game)).findFirst().orElse(null));
+                return;
+            }
+        }
+        loadGame(games.get(new Random().nextInt(games.size())));
+    }
+
+    public static void loadGame(Game game){
+        OMGPI.game = game;
+        game.onEnable();
     }
 
     @Mod.EventHandler
     public static void onForgeServerStart(FMLServerStartingEvent e){
+        new OMGInitEvent();
         e.registerServerCommand(new IngameCommand());
     }
 
